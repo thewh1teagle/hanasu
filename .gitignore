@@ -5,3 +5,7 @@ __pycache__/
 venv/
 *.7z
 ilspeech_speaker*/
+raw_dataset/
+dataset/
+logs/
+checkpoints/

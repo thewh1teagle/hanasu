@@ -21,15 +21,16 @@ global_step = 0
 
 class TextAudioSpeakerLoader(torch.utils.data.Dataset):
     """Loads pre-computed mels, audio, speaker_id, and phoneme tokens from a jsonl manifest."""
-    def __init__(self, jsonl_path, hparams):
-        self.hparams = hparams
+    def __init__(self, jsonl_path, hps):
+        self.hps = hps
         self.base_dir = os.path.dirname(jsonl_path)
-        self.max_wav_value = hparams.max_wav_value
-        self.sampling_rate = hparams.sampling_rate
-        self.hop_length = hparams.hop_length
-        self.min_text_len = getattr(hparams, "min_text_len", 1)
-        self.max_text_len = getattr(hparams, "max_text_len", 20000)
-        self.min_audio_len = getattr(hparams, "min_audio_len", 8192)
+        self.max_wav_value = hps.data.max_wav_value
+        self.sampling_rate = hps.data.sampling_rate
+        self.hop_length = hps.data.hop_length
+        self.segment_size = hps.train.segment_size
+        self.min_text_len = getattr(hps.data, "min_text_len", 1)
+        self.max_text_len = getattr(hps.data, "max_text_len", 20000)
+        self.min_audio_len = getattr(hps.data, "min_audio_len", 8192)
 
         with open(jsonl_path, encoding="utf-8") as f:
             self.entries = [json.loads(line) for line in f if line.strip()]
@@ -63,7 +64,7 @@ class TextAudioSpeakerLoader(torch.utils.data.Dataset):
         if sampling_rate != self.sampling_rate:
             raise ValueError(f"{sampling_rate} SR doesn't match target {self.sampling_rate} SR")
         audio_norm = (audio / self.max_wav_value).unsqueeze(0)
-        segment_size = self.hparams.train.segment_size
+        segment_size = self.segment_size
         if audio_norm.size(1) < segment_size:
             audio_norm = F.pad(audio_norm, (0, segment_size - audio_norm.size(1)))
         sid = torch.LongTensor([entry["speaker_id"]])
@@ -263,7 +264,7 @@ def run(rank, n_gpus, hps):
     torch.cuda.set_device(rank)
     posterior_channels = 128  # vits2
 
-    train_dataset = TextAudioSpeakerLoader(hps.data.training_files, hps.data)
+    train_dataset = TextAudioSpeakerLoader(hps.data.training_files, hps)
     train_sampler = DistributedBucketSampler(
         train_dataset,
         hps.train.batch_size,
@@ -282,7 +283,7 @@ def run(rank, n_gpus, hps):
         batch_sampler=train_sampler,
     )
     if rank == 0:
-        eval_dataset = TextAudioSpeakerLoader(hps.data.validation_files, hps.data)
+        eval_dataset = TextAudioSpeakerLoader(hps.data.validation_files, hps)
         eval_loader = DataLoader(
             eval_dataset,
             num_workers=8,
@@ -313,10 +314,10 @@ def run(rank, n_gpus, hps):
         and hps.model.use_spk_conditioned_encoder == True
     ):
         if hps.data.n_speakers == 0:
-            print("Warning: use_spk_conditioned_encoder is true but n_speakers is 0, disabling speaker conditioning")
-            use_spk_conditioned_encoder = False
-        else:
-            use_spk_conditioned_encoder = True
+            raise ValueError(
+                "n_speakers must be > 0 when using spk conditioned encoder to train multi-speaker model"
+            )
+        use_spk_conditioned_encoder = True
     else:
         print("Using normal encoder for VITS1")
         use_spk_conditioned_encoder = False
@@ -330,7 +331,7 @@ def run(rank, n_gpus, hps):
         hps.model.hidden_channels,
         3,
         0.1,
-        gin_channels=hps.model.gin_channels if hps.data.n_speakers != 0 else 0,
+        gin_channels=hps.model.gin_channels,
     ).cuda(rank)
 
     net_g = SynthesizerTrn(

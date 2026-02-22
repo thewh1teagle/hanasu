@@ -1405,7 +1405,7 @@ class SynthesizerTrn(nn.Module):
         z, m_q, logs_q, y_mask = self.enc_q(y, y_lengths, g=g)
         z_p = self.flow(z, y_mask, g=g)
 
-        with torch.inference_mode():
+        with torch.no_grad():
             # negative cross-entropy
             s_p_sq_r = torch.exp(-2 * logs_p)  # [b, d, t]
             neg_cent1 = torch.sum(-0.5 * math.log(2 * math.pi) - logs_p, [1], keepdim=True)  # [b, 1, t_s]
@@ -1446,8 +1446,11 @@ class SynthesizerTrn(nn.Module):
         - noise_scale_w=0.5 (was 0.8): Makes rhythm more stable, prevents slurring.
         """
         with torch.autocast(device_type=x.device.type):
-            sid = torch.LongTensor([sid]).to(x.device) if sid is not None else None
-            g = self.emb_g(sid).unsqueeze(-1) if sid is not None else None  # [b, h, 1]
+            if self.n_speakers > 0 and sid is not None:
+                sid = torch.LongTensor([sid]).to(x.device) if not isinstance(sid, torch.Tensor) else sid
+                g = self.emb_g(sid).unsqueeze(-1)
+            else:
+                g = None
 
             # Store original token IDs before encoding
             x_tokens = x

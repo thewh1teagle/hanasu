@@ -31,7 +31,7 @@
     "n_mel_channels": 128,
     "mel_fmin": 100.0,
     "mel_fmax": 16000.0,
-    "n_speakers": 0
+    "n_speakers": 1
   },
   "model": {
     "use_transformer_flows": true,
