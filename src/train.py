@@ -586,6 +586,7 @@ def train_and_evaluate(
         scaler.update()
 
         if rank == 0:
+            loader.set_description(f"step {global_step} | loss_g {loss_gen_all.item():.2f} | loss_d {loss_disc_all.item():.2f}")
             if global_step % hps.train.log_interval == 0:
                 lr = optim_g.param_groups[0]["lr"]
                 losses = [loss_disc, loss_gen, loss_fm, loss_mel, loss_dur, loss_kl]
