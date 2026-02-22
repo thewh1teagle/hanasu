@@ -1,0 +1,47 @@
+[project]
+name = "hanasu"
+version = "0.1.0"
+description = "TTS Model Experiment based on Vits2"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "cython>=3.2.4",
+    "datasets>=4.5.0",
+    "epub2txt>=0.1.6",
+    "espeakng-loader>=0.2.4",
+    "librosa>=0.11.0",
+    "lightning>=2.6.1",
+    "matplotlib>=3.10.8",
+    "mlx>=0.30.6",
+    "monotonic-alignment-search>=0.2.1",
+    "numpy>=2.4.2",
+    "onnx>=1.20.1",
+    "onnxruntime>=1.24.2",
+    "opencv-python>=4.13.0.92",
+    "phonemizer>=3.3.0",
+    "phonemizer-fork>=3.3.2",
+    "pillow>=12.1.1",
+    "requests>=2.32.5",
+    "rich>=14.3.3",
+    "safetensors>=0.7.0",
+    "scipy>=1.17.0",
+    "soundfile>=0.13.1",
+    "tensorboard>=2.20.0",
+    "tokenizers>=0.22.2",
+    "torch>=2.10.0",
+    "tqdm>=4.67.3",
+    "typer>=0.24.1",
+    "uvicorn>=0.41.0",
+]
+
+# CUDA Config
+
+[[tool.uv.index]]
+name = "pytorch-cu130"
+url = "https://download.pytorch.org/whl/cu130"
+explicit = true
+
+[tool.uv.sources]
+torch = [
+  { index = "pytorch-cu130", marker = "sys_platform == 'linux' or sys_platform == 'win32'" },
+]
