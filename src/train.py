@@ -224,7 +224,7 @@ def kl_loss(z_p, logs_q, m_p, logs_p, z_mask):
     z_mask = z_mask.float()
 
     kl = logs_p - logs_q - 0.5
-    kl += 0.5 * ((z_p - m_p) ** 2) * torch.exp(-2.0 * logs_p)
+    kl += 0.5 * ((z_p - m_p) ** 2) * torch.exp(-2.0 * logs_p.clamp(min=-10, max=10))
     kl = torch.sum(kl * z_mask)
     l = kl / torch.sum(z_mask)
     return l
@@ -551,14 +551,14 @@ def train_and_evaluate(
                 scaler.scale(loss_dur_disc_all).backward()
                 scaler.unscale_(optim_dur_disc)
                 grad_norm_dur_disc = commons.clip_grad_value_(
-                    net_dur_disc.parameters(), None
+                    net_dur_disc.parameters(), 1000
                 )
                 scaler.step(optim_dur_disc)
 
         optim_d.zero_grad()
         scaler.scale(loss_disc_all).backward()
         scaler.unscale_(optim_d)
-        grad_norm_d = commons.clip_grad_value_(net_d.parameters(), None)
+        grad_norm_d = commons.clip_grad_value_(net_d.parameters(), 1000)
         scaler.step(optim_d)
 
         with autocast(enabled=hps.train.fp16_run):
@@ -581,7 +581,7 @@ def train_and_evaluate(
         optim_g.zero_grad()
         scaler.scale(loss_gen_all).backward()
         scaler.unscale_(optim_g)
-        grad_norm_g = commons.clip_grad_value_(net_g.parameters(), None)
+        grad_norm_g = commons.clip_grad_value_(net_g.parameters(), 1000)
         scaler.step(optim_g)
         scaler.update()
 
