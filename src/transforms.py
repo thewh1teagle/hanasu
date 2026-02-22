@@ -32,7 +32,8 @@ def unconstrained_rational_quadratic_spline(inputs, unnormalized_widths, unnorma
     outputs[outside_interval_mask] = inputs[outside_interval_mask]
     logabsdet[outside_interval_mask] = 0
 
-    outputs[inside_interval_mask], logabsdet[inside_interval_mask] = rational_quadratic_spline(inputs[inside_interval_mask], unnormalized_widths[inside_interval_mask, :], unnormalized_heights[inside_interval_mask, :], unnormalized_derivatives[inside_interval_mask, :], inverse=inverse, left=-tail_bound, right=tail_bound, bottom=-tail_bound, top=tail_bound, min_bin_width=min_bin_width, min_bin_height=min_bin_height, min_derivative=min_derivative)
+    if inside_interval_mask.any():
+        outputs[inside_interval_mask], logabsdet[inside_interval_mask] = rational_quadratic_spline(inputs[inside_interval_mask], unnormalized_widths[inside_interval_mask, :], unnormalized_heights[inside_interval_mask, :], unnormalized_derivatives[inside_interval_mask, :], inverse=inverse, left=-tail_bound, right=tail_bound, bottom=-tail_bound, top=tail_bound, min_bin_width=min_bin_width, min_bin_height=min_bin_height, min_derivative=min_derivative)
     return outputs, logabsdet
 
 def rational_quadratic_spline(inputs, unnormalized_widths, unnormalized_heights, unnormalized_derivatives, inverse=False, left=0.0, right=1.0, bottom=0.0, top=1.0, min_bin_width=DEFAULT_MIN_BIN_WIDTH, min_bin_height=DEFAULT_MIN_BIN_HEIGHT, min_derivative=DEFAULT_MIN_DERIVATIVE):
