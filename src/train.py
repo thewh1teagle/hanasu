@@ -506,6 +506,11 @@ def train_and_evaluate(
                 (hidden_x, logw, logw_),
             ) = net_g(x, x_lengths, spec, spec_lengths, speakers)
 
+            if torch.isnan(y_hat).any():
+                print(f"Warning: NaN in forward pass at step {global_step}, skipping batch")
+                global_step += 1
+                continue
+
             mel = spec
 
             y_mel = commons.slice_segments(
@@ -551,14 +556,14 @@ def train_and_evaluate(
                 scaler.scale(loss_dur_disc_all).backward()
                 scaler.unscale_(optim_dur_disc)
                 grad_norm_dur_disc = commons.clip_grad_value_(
-                    net_dur_disc.parameters(), 1000
+                    net_dur_disc.parameters(), 5
                 )
                 scaler.step(optim_dur_disc)
 
         optim_d.zero_grad()
         scaler.scale(loss_disc_all).backward()
         scaler.unscale_(optim_d)
-        grad_norm_d = commons.clip_grad_value_(net_d.parameters(), 1000)
+        grad_norm_d = commons.clip_grad_value_(net_d.parameters(), 5)
         scaler.step(optim_d)
 
         with autocast(enabled=hps.train.fp16_run):
@@ -581,7 +586,7 @@ def train_and_evaluate(
         optim_g.zero_grad()
         scaler.scale(loss_gen_all).backward()
         scaler.unscale_(optim_g)
-        grad_norm_g = commons.clip_grad_value_(net_g.parameters(), 1000)
+        grad_norm_g = commons.clip_grad_value_(net_g.parameters(), 5)
         scaler.step(optim_g)
         scaler.update()
 
